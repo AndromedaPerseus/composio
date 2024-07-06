@@ -19,7 +19,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import BaseModel, Field
 
-from composio.core.local import Action
+from composio.tools.local.base import Action
 
 
 class QueryInputSchema(BaseModel):

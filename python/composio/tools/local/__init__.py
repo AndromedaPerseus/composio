@@ -14,10 +14,12 @@ from composio.tools.local.shelltool.shell_exec import ShellExec
 from composio.tools.local.sqltool import SqlTool
 from composio.tools.local.webtool import WebTool
 from composio.tools.local.zep import ZepTool
-
+from composio.tools.local.codeindex import CodeIndexTool
 
 TOOLS_PATH = Path(__file__).parent
+
 TOOLS = [
+    CodeIndexTool,
     Mathematical,
     FileTool,
     Greptile,

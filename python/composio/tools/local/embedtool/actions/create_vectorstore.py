@@ -1,8 +1,4 @@
-import os
-from pathlib import Path
-
 import chromadb
-from IPython.display import Markdown, display
 from chromadb.utils.data_loaders import ImageLoader
 from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
 from llama_index.core import (
@@ -14,8 +10,8 @@ from llama_index.core import (
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import BaseModel, Field
-
-from composio.core.local import Action
+from typing import Type
+from composio.tools.local.base import Action
 
 
 class VectorStoreInputSchema(BaseModel):
@@ -33,16 +29,16 @@ class VectorStoreOutputSchema(BaseModel):
     result: str = Field(..., description="Result of the action")
 
 
-class CreateVectorstore(Action):
+class CreateVectorstore(Action[VectorStoreInputSchema, VectorStoreOutputSchema]):
     """
     Creates Vector Store with Image Embeddings
     """
 
     _display_name = "Create Vector Store"
-    _request_schema = VectorStoreInputSchema
-    _response_schema = VectorStoreOutputSchema
-    _tags = ["create vector store"]  # Optional tags to categorize your action
-    _tool_name = "embedtool"  # Tool name, same as directory name
+    _request_schema: Type[VectorStoreInputSchema] = VectorStoreInputSchema
+    _response_schema: Type[VectorStoreOutputSchema] = VectorStoreOutputSchema
+    _tags = ["store"]
+    _tool_name = "embedtool"
 
     def execute(
         self, request_data: VectorStoreInputSchema, authorisation_data: dict = {}
