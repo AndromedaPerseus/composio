@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 from typing import Type
 
-import chromadb
-from chromadb.errors import ChromaError
 from composio.tools.local.base import Action
 from pydantic import BaseModel, Field
 
@@ -31,6 +29,9 @@ class DeleteIndex(Action[DeleteIndexInput, DeleteIndexOutput]):
     def execute(
         self, input_data: DeleteIndexInput, authorisation_data: dict = {}
     ) -> DeleteIndexOutput:
+        import chromadb  # TODO: simplify import
+        from chromadb.errors import ChromaError
+
         index_storage_path = Path.home() / ".composio" / "index_storage"
         collection_name = Path(input_data.index_directory).name
         status_file = Path(input_data.index_directory) / ".indexing_status.json"

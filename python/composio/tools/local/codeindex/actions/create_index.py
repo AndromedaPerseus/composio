@@ -5,9 +5,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional, Tuple, Type
 
-import chromadb
-from chromadb.utils import embedding_functions
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from composio.tools.local.base import Action
 from pydantic import BaseModel, Field
 
@@ -65,6 +62,7 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
     def execute(
         self, request_data: CreateCodeIndexInput, authorisation_data: dict = {}
     ) -> CreateCodeIndexOutput:
+
         # Check if index already exists or is in progress
         status = self.check_status(request_data.dir_to_index_path)
         if status["status"] == "completed" and not request_data.force_index:
@@ -90,6 +88,8 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
         )
 
     def _delete_existing_index(self, repo_path: str):
+        import chromadb  # TODO: simplify import
+
         index_storage_path = Path.home() / ".composio" / "index_storage"
         collection_name = self._get_collection_name(repo_path)
         status_file = Path(repo_path) / ".indexing_status.json"
@@ -104,6 +104,8 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
             os.remove(status_file)
 
     def _index_creation(self, request_data: CreateCodeIndexInput):
+        import chromadb  # TODO: simplify import
+
         collection_name = self._get_collection_name(request_data.dir_to_index_path)
         index_storage_path = Path.home() / ".composio" / "index_storage"
         self._create_index_storage_path(index_storage_path)
@@ -148,6 +150,9 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
         self,
         embedding_type: str,
     ):
+        from chromadb.utils import embedding_functions
+        from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
         if embedding_type == "remote":
             openai_key, api_base, helicone_auth = self._get_openai_credentials()
             if not openai_key:
