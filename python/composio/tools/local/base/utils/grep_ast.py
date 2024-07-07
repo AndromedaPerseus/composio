@@ -5,6 +5,9 @@ import re
 
 from .parser import filename_to_lang
 
+# This file is based on code from
+# https://github.com/paul-gauthier/aider/blob/main/aider/repomap.py
+
 
 class TreeContext:
     def __init__(

@@ -8,6 +8,9 @@ import pathspec
 from .grep_ast import TreeContext
 from .parser import filename_to_lang
 
+# This file is based on code from
+# https://github.com/paul-gauthier/grep-ast/blob/main/grep_ast/grep_ast.py
+
 
 def get_files_excluding_gitignore(root_path, no_gitignore=False):
     """

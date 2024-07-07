@@ -9,14 +9,18 @@ from pathlib import Path
 
 from composio.tools.local.base.utils.grep_ast import TreeContext
 from composio.tools.local.base.utils.parser import filename_to_lang
-from composio.tools.local.base.utils.utils import (get_mtime, get_rel_fname,
-                                                   print_if_verbose,
-                                                   split_path, token_count)
-from diskcache import Cache
+from composio.tools.local.base.utils.utils import (
+    get_mtime,
+    get_rel_fname,
+    print_if_verbose,
+    split_path,
+    token_count,
+)
+
 
 # Suppress FutureWarning from tree_sitter
 warnings.simplefilter("ignore", category=FutureWarning)
-from tree_sitter_languages import get_language, get_parser  # noqa: E402
+
 
 # Define a named tuple for storing tag information
 Tag = namedtuple("Tag", ["rel_fname", "fname", "line", "name", "kind"])
@@ -167,6 +171,8 @@ class RepoMap:
         return repo_content
 
     def load_tags_cache(self):
+        from diskcache import Cache  # TODO: simplify import
+
         """Load tags cache from disk."""
         path = Path(self.root) / self.TAGS_CACHE_DIR
         if not path.exists():
@@ -225,6 +231,10 @@ class RepoMap:
                 "Exiting get_tags_raw due to no language detected", self.verbose
             )
             return
+        from tree_sitter_languages import (
+            get_language,
+            get_parser,
+        )  # TODO: simplify import
 
         language = get_language(lang)
         parser = get_parser(lang)
@@ -649,6 +659,7 @@ class RepoMap:
             print(f"Cache contents deleted: {cache_path}")
         else:
             print("No cache found to delete.")
+            from diskcache import Cache  # TODO: simplify import
 
             # Reset the cache object
             self.TAGS_CACHE = Cache(cache_path)
