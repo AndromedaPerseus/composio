@@ -7,25 +7,23 @@ from pydantic import BaseModel, Field
 
 
 class CodeSearchRequest(BaseModel):
-    search_pattern: str = Field(
-        ..., description="Pattern to search for in the codebase"
+    query: str = Field(
+        ...,
+        description="The search pattern or regular expression to find in the codebase. Use this to locate specific code constructs, function definitions, variable names, or text patterns.",
+        examples=["def main\\(", "TODO:", "import numpy"],
     )
-    search_directory: Optional[str] = Field(
+    root_directory: Optional[str] = Field(
         default=str(Path.home()),
-        description="Directory to search in",
-        examples=["/user/home"],
+        description="The root directory to start the search from. This should be the top-level folder of your project or codebase. If not specified, the search will start from the user's home directory.",
+        examples=["/path/to/project", "/home/user/workspace/my-app"],
     )
-    target_files: Optional[List[str]] = Field(
+    file_paths: Optional[List[str]] = Field(
         default=None,
-        description="List of specific files to search",
+        description="A list of specific file paths to search within. Use this when you want to limit the search to particular files or subdirectories. If not provided, the search will cover all files under the root_directory.",
         examples=[
-            ["/user/home/file1.py", "/user/home/file2.py"],
-            ["/user/home/python/file4.py"],
+            ["/path/to/project/src/main.py", "/path/to/project/tests/test_main.py"],
+            ["app/models.py", "app/views.py", "app/controllers.py"],
         ],
-    )
-    respect_gitignore: bool = Field(
-        default=True,
-        description="If true, respect .gitignore file and exclude files/directories listed in it from the search",
     )
 
 
@@ -35,47 +33,59 @@ class SearchResult(BaseModel):
 
 
 class CodeSearchResponse(BaseModel):
-    search_results: List[SearchResult] = Field(..., description="Code search results")
-    error_message: Optional[str] = Field(
-        default=None, description="Error message if any"
+    matches: List[SearchResult] = Field(
+        ...,
+        description="A list of search results, each containing the file path and the matched content.",
+    )
+    error: Optional[str] = Field(
+        default=None,
+        description="An error message describing any issues encountered during the search process. This field is None if the search was successful.",
     )
 
 
 class SearchCodebase(Action[CodeSearchRequest, CodeSearchResponse]):
     """
-    Searches the codebase for a specific pattern using grep-like functionality.
+    Performs an advanced search across a codebase using regex patterns, similar to the grep command but optimized for large-scale software projects.
 
-    Example:
+    This action is ideal for when you need to quickly locate specific code patterns, function definitions, or text within a large codebase. It's particularly useful for:
+    - Finding all occurrences of a particular function or class
+    - Locating TODO comments or specific error handling patterns
+    - Identifying usage of certain libraries or API calls
+    - Searching for potential security vulnerabilities or code smells
+
+    The search is performed efficiently and can handle large codebases by leveraging optimized search algorithms and respecting version control ignore files.
+
+    Example usage:
+    ```python
+    search_request =
+        query=r"def\s+process_data\(",  # Searches for function definitions starting with 'process_data'
+        root_directory="/path/to/project",
+
+    search_results = SearchCodebase().execute(search_request)
+
+    for result in search_results.matches:
+        print(f"Found in {result.file_path}:")
+        print(result.matched_content)
     ```
-        search_pattern="def main",
-        search_directory="/path/to/project",
-        case_sensitive=True,
-        respect_gitignore=True
-    ```
+
+    This action provides a powerful tool for code analysis, refactoring assistance, and codebase exploration tasks.
     """
 
-    _display_name = "Search Codebase"
-    _description = "Regex Searches the codebase for a specific pattern in an optimised fashion, similar to the grep command."
+    _display_name = "Advanced Codebase Search"
+    _description = "Performs a regex-based search across a codebase, offering powerful and flexible code pattern matching capabilities."
     _request_schema: Type[CodeSearchRequest] = CodeSearchRequest
     _response_schema: Type[CodeSearchResponse] = CodeSearchResponse
-    _tags = ["search"]
-    _tool_name = "codesearch"
+    _tags = ["search", "code-analysis"]
+    _tool_name = "advanced_codesearch"
 
     def execute(
         self, request: CodeSearchRequest, authorisation_data: dict = {}
     ) -> CodeSearchResponse:
         try:
-            if request.target_files:
-                search_paths = request.target_files
-            elif request.search_directory:
-                search_paths = [request.search_directory]
-            else:
-                search_paths = [str(Path.home())]
+            search_paths = request.file_paths or [request.root_directory]
 
             grep_results = grep_util(
-                pattern=request.search_pattern,
-                filenames=search_paths,
-                no_gitignore=not request.respect_gitignore,
+                pattern=request.query, filenames=search_paths, no_gitignore=False
             )
 
             formatted_results = [
@@ -85,8 +95,8 @@ class SearchCodebase(Action[CodeSearchRequest, CodeSearchResponse]):
                 for result in grep_results
             ]
 
-            return CodeSearchResponse(search_results=formatted_results)
+            return CodeSearchResponse(matches=formatted_results)
         except Exception as e:
-            error_message = f"An error occurred during code search: {str(e)}"
+            error_message = f"An error occurred during the codebase search: {str(e)}"
             print(error_message)
-            return CodeSearchResponse(search_results=[], error_message=error_message)
+            return CodeSearchResponse(matches=[], error=error_message)

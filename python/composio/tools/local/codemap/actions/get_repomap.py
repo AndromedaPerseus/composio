@@ -2,67 +2,89 @@ from pathlib import Path
 from typing import List, Optional, Type
 
 from composio.tools.local.base import Action
-from composio.tools.local.base.utils.grep_utils import \
-    get_files_excluding_gitignore
+from composio.tools.local.base.utils.grep_utils import get_files_excluding_gitignore
 from composio.tools.local.base.utils.repomap import RepoMap
 from pydantic import BaseModel, Field
 
 
 class GetRepoMapRequest(BaseModel):
-    root_path: str = Field(..., description="Root path of the repository")
-    target_files: List[str] = Field(
-        ..., description="Files of particular interest to generate repo map for"
+    repository_root: str = Field(
+        ...,
+        description="Absolute path to the root directory of the repository",
+        examples=[
+            "/home/user/projects/my-repo",
+            "/Users/username/Documents/my-project",
+        ],
+    )
+    files_of_interest: List[str] = Field(
+        ...,
+        description="List of file paths (relative to repository root) that are of particular interest for generating the repo map",
+        examples=[
+            ["src/main.py", "tests/test_main.py", "README.md"],
+            ["main.py", "test_main.py", "README.md"],
+        ],
     )
 
 
 class GetRepoMapResponse(BaseModel):
-    repo_map: Optional[str] = Field(
-        default=None, description="Generated repository map"
+    repository_map: Optional[str] = Field(
+        default=None,
+        description="Generated repository map as a string, containing a structured view of important code elements",
     )
-    error: Optional[str] = Field(default=None, description="Error message if any")
+    error_message: Optional[str] = Field(
+        default=None,
+        description="Detailed error message if an error occurred during map generation",
+    )
 
 
 class GetRepoMap(Action[GetRepoMapRequest, GetRepoMapResponse]):
     """
-    Generates a repository map for specified files of particular interest.
+    Generates a comprehensive repository map for specified files of interest within a given repository.
+
+    This action analyzes the repository structure, focusing on the files specified as 'files_of_interest'.
+    It provides a structured view of important code elements, helping software agents understand
+    the layout and key components of the codebase.
     """
 
-    _display_name = "Get Repository Map"
-    _description = "Generates a repository map for files of particular interest, providing a structured view of important code elements in the repository."
+    _display_name = "Generate Repository Map"
+    _description = "Creates a detailed map of a repository, highlighting specified files of interest and providing a structured overview of key code elements."
     _request_schema: Type[GetRepoMapRequest] = GetRepoMapRequest
     _response_schema: Type[GetRepoMapResponse] = GetRepoMapResponse
-    _tags = ["repo"]
+    _tags = ["repository", "code-structure", "analysis"]
     _tool_name = "codemap"
 
     def execute(
         self, request: GetRepoMapRequest, authorisation_data: dict = {}
     ) -> dict:
-        repo_root = Path(request.root_path).resolve()
+        repo_root = Path(request.repository_root).resolve()
 
         if not repo_root.exists():
-            return {"error": f"Repository root path {repo_root} does not exist"}
+            return {
+                "error_message": f"Repository root path '{repo_root}' does not exist or is inaccessible."
+            }
 
         try:
-            # Get all files in the repository, excluding those in .gitignore
-            all_files = get_files_excluding_gitignore(repo_root)
+            # Retrieve all files in the repository, excluding those specified in .gitignore
+            all_repository_files = get_files_excluding_gitignore(repo_root)
 
-            # Convert absolute paths to relative paths
-            all_files = [str(Path(file).relative_to(repo_root)) for file in all_files]
+            # Convert absolute paths to paths relative to the repository root
+            relative_file_paths = [
+                str(Path(file).relative_to(repo_root)) for file in all_repository_files
+            ]
 
-            # Generate repo map
-            repo_map = RepoMap(root=repo_root).get_repo_map(
-                chat_files=[],
-                other_files=all_files,
-                mentioned_fnames=set(request.target_files),
-                mentioned_idents=set(),
+            # Generate the repository map
+            repo_map_generator = RepoMap(root=repo_root)
+            generated_map = repo_map_generator.get_repo_map(
+                chat_files=[],  # No chat files are used in this context
+                other_files=relative_file_paths,
+                mentioned_fnames=set(request.files_of_interest),
+                mentioned_idents=set(),  # No specific identifiers are mentioned
             )
 
-            return {
-                "repo_map": repo_map,
-                "message": "Repository map generated successfully for specified files",
-            }
+            return {"repository_map": generated_map, "error_message": None}
 
         except Exception as e:
             return {
-                "error": f"An error occurred while generating the repository map: {str(e)}"
+                "repository_map": None,
+                "error_message": f"An error occurred while generating the repository map: {str(e)}. Please ensure all paths are correct and you have necessary permissions.",
             }
