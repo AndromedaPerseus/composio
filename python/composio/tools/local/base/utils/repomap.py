@@ -117,10 +117,8 @@ class RepoMap:
             return
 
         # Initialize mentioned sets if not provided
-        if not mentioned_fnames:
-            mentioned_fnames = set()
-        if not mentioned_idents:
-            mentioned_idents = set()
+        mentioned_fnames = mentioned_fnames or set()
+        mentioned_idents = mentioned_idents or set()
 
         max_map_tokens = self.max_map_tokens
 
@@ -517,10 +515,9 @@ class RepoMap:
             other_fnames = list()
         if not max_map_tokens:
             max_map_tokens = self.max_map_tokens
-        if not mentioned_fnames:
-            mentioned_fnames = set()
-        if not mentioned_idents:
-            mentioned_idents = set()
+
+        mentioned_fnames = mentioned_fnames or set()
+        mentioned_idents = mentioned_idents or set()
 
         # print(
         #     f"Parameters: chat_fnames={chat_fnames}, other_fnames={other_fnames}, max_map_tokens={max_map_tokens}, mentioned_fnames={mentioned_fnames}, mentioned_idents={mentioned_idents}"

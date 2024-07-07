@@ -182,8 +182,12 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
         try:
 
             def process_file(file_path: str) -> None:
-                with open(file_path, "r", encoding="utf-8") as file:
-                    content = file.read()
+                try:
+                    with open(file_path, "r", encoding="utf-8") as file:
+                        content = file.read()
+                except Exception as e:
+                    print(f"Failed to read {file_path}: {e}")
+                    return
 
                 windows = self._create_windows(content)
 

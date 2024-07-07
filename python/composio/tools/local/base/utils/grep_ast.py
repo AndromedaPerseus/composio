@@ -94,14 +94,16 @@ class TreeContext:
     def grep(self, pat, ignore_case):
         # Search for pattern in lines and highlight matches if color is enabled
         found = set()
+
+        # Compile the regex pattern once before the loop
+        flags = re.IGNORECASE if ignore_case else 0
+        compiled_pat = re.compile(pat, flags)
+
         for i, line in enumerate(self.lines):
-            if re.search(pat, line, re.IGNORECASE if ignore_case else 0):
+            if compiled_pat.search(line):
                 if self.color:
-                    highlighted_line = re.sub(
-                        pat,
-                        lambda match: f"\033[1;31m{match.group()}\033[0m",
-                        line,
-                        flags=re.IGNORECASE if ignore_case else 0,
+                    highlighted_line = compiled_pat.sub(
+                        lambda match: f"\033[1;31m{match.group()}\033[0m", line
                     )
                     self.output_lines[i] = highlighted_line
                 found.add(i)
@@ -122,13 +124,12 @@ class TreeContext:
 
         # Add padding around lines of interest
         if self.loi_pad:
-            for line in list(self.show_lines):
-                for new_line in range(line - self.loi_pad, line + self.loi_pad + 1):
-                    if new_line >= self.num_lines:
-                        continue
-                    if new_line < 0:
-                        continue
-                    self.show_lines.add(new_line)
+            for line in self.show_lines.copy():
+                new_lines = range(
+                    max(0, line - self.loi_pad),
+                    min(self.num_lines, line + self.loi_pad + 1),
+                )
+                self.show_lines.update(new_lines)
 
         # Add the bottom line and its parent context if required
         if self.last_line:
