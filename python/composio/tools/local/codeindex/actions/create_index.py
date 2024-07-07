@@ -51,9 +51,6 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
     """
 
     _display_name = "Create index"
-    _description = (
-        "Indexes a code base in a folder and stores the index in a vector store."
-    )
     _request_schema: Type[CreateCodeIndexInput] = CreateCodeIndexInput
     _response_schema: Type[CreateCodeIndexOutput] = CreateCodeIndexOutput
     _tags = ["index"]

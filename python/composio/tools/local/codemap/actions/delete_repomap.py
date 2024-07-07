@@ -17,11 +17,10 @@ class DeleteRepoMapResponse(BaseModel):
 
 class DeleteRepoMap(Action[DeleteRepoMapRequest, DeleteRepoMapResponse]):
     """
-    Deletes the repository map cache for the given root directory.
+    Deletes the repository map cache for the given root directory. This action removes the cached data used by RepoMap.
     """
 
     _display_name = "Delete Repository Map Cache"
-    _description = "Deletes the repository map cache for the given root directory. This action removes the cached data used by RepoMap."
     _request_schema: Type[DeleteRepoMapRequest] = DeleteRepoMapRequest
     _response_schema: Type[DeleteRepoMapResponse] = DeleteRepoMapResponse
     _tags = ["repo"]

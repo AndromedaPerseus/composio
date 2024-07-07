@@ -22,7 +22,6 @@ class IndexStatus(Action[IndexStatusInput, IndexStatusOutput]):
     """
 
     _display_name = "Check Index Status"
-    _description = "Checks the status of the indexing process for a given directory."
     _request_schema: Type[IndexStatusInput] = IndexStatusInput
     _response_schema: Type[IndexStatusOutput] = IndexStatusOutput
     _tags = ["index"]

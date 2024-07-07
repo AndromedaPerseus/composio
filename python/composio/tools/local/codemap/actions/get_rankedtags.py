@@ -66,7 +66,6 @@ class GenerateRankedTags(Action[GenerateRankedTagsRequest, GenerateRankedTagsRes
     """
 
     _display_name = "Generate Ranked Tags"
-    _description = "Analyzes specified files in a repository and generates a ranked list of important code elements (tags), providing a structured view of key components."
     _request_schema: Type[GenerateRankedTagsRequest] = GenerateRankedTagsRequest
     _response_schema: Type[GenerateRankedTagsResponse] = GenerateRankedTagsResponse
     _tags = ["repo", "tags", "code-analysis"]

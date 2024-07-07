@@ -1,72 +1,91 @@
-from typing import Type
-
-import chromadb
-from chromadb.utils.data_loaders import ImageLoader
-from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
-from composio.tools.local.base import Action
-from llama_index.core import (SimpleDirectoryReader, StorageContext,
-                              VectorStoreIndex)
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.vector_stores.chroma import ChromaVectorStore
+from typing import Type, List
+import os
+from pathlib import Path
 from pydantic import BaseModel, Field
+from composio.tools.local.base import Action
 
 
-class VectorStoreInputSchema(BaseModel):
-    # Define input schema for your action
-    # Example:
-    # text: str = Field(..., description="Input text for the action")
-    images_path: str = Field(..., description="Path to the saved image folder")
-    collection_name: str = Field(..., description="Name of the Chroma VectorStore")
-    folder_path: str = Field(..., description="Directory where it should be stored")
+class CreateVectorStoreInputSchema(BaseModel):
+    folder_path: str = Field(..., description="Path to the folder to be indexed")
 
 
-class VectorStoreOutputSchema(BaseModel):
-    # Define output schema for your action
-    # Example:
+class CreateVectorStoreOutputSchema(BaseModel):
     result: str = Field(..., description="Result of the action")
+    error: str = Field(default=None, description="Error message if any")
 
 
-class CreateVectorstore(Action[VectorStoreInputSchema, VectorStoreOutputSchema]):
+class CreateImageVectorStore(
+    Action[CreateVectorStoreInputSchema, CreateVectorStoreOutputSchema]
+):
     """
-    Creates Vector Store with Image Embeddings
+    Creates Vector Store for all image files in the specified folder
     """
 
-    _display_name = "Create Vector Store"
-    _request_schema: Type[VectorStoreInputSchema] = VectorStoreInputSchema
-    _response_schema: Type[VectorStoreOutputSchema] = VectorStoreOutputSchema
-    _tags = ["store"]
+    _display_name = "Create Image Vector Store"
+    _request_schema: Type[CreateVectorStoreInputSchema] = CreateVectorStoreInputSchema
+    _response_schema: Type[CreateVectorStoreOutputSchema] = (
+        CreateVectorStoreOutputSchema
+    )
+    _tags = ["vectorstore", "image", "indexing"]
     _tool_name = "embedtool"
 
+    def find_image_files(self, folder_path: str) -> List[dict]:
+        """
+        Finds all image files from the specified folder path.
+        """
+        image_files = []
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                if file.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
+                    file_path = os.path.join(root, file)
+                    image_info = {
+                        "content": f"Image file: {file}",
+                        "metadata": {"file_path": file_path, "file_type": "image"},
+                    }
+                    image_files.append(image_info)
+        return image_files
+
     def execute(
-        self, request_data: VectorStoreInputSchema, authorisation_data: dict = {}
-    ) -> dict:
-        # Implement logic to process input and return output
-        # Example:
-        # response_data = {"result": "Processed text: " + request_data.text}
-        embedding_function = OpenCLIPEmbeddingFunction()
-        image_loader = ImageLoader()
-        # create client and a new collection
-        chroma_client = chromadb.PersistentClient(path=request_data.folder_path)
-        chroma_collection = chroma_client.create_collection(
-            request_data.collection_name,
-            embedding_function=embedding_function,
-            data_loader=image_loader,
+        self, request_data: CreateVectorStoreInputSchema, authorisation_data: dict = {}
+    ) -> CreateVectorStoreOutputSchema:
+        import chromadb
+        from chromadb.utils import embedding_functions
+
+        """
+        Executes the vector store creation process for all image files in the folder.
+        """
+        image_collection_name = Path(request_data.folder_path).name + "_images"
+        index_storage_path = Path.home() / ".composio" / "image_index_storage"
+        index_storage_path.mkdir(parents=True, exist_ok=True)
+
+        # Initialize Chroma client
+        chroma_client = chromadb.PersistentClient(path=str(index_storage_path))
+
+        # Create embedding function for images
+        image_embedding_function = embedding_functions.OpenCLIPEmbeddingFunction()
+
+        image_collection = chroma_client.get_or_create_collection(
+            name=image_collection_name,
+            embedding_function=image_embedding_function,
         )
 
-        # load documents
-        documents = SimpleDirectoryReader(request_data.images_path).load_data()
+        # Find image files
+        image_files = self.find_image_files(request_data.folder_path)
 
-        # set up ChromaVectorStore and load in data
-        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        index = VectorStoreIndex.from_documents(
-            documents,
-            embed_model=HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5"),
-            storage_context=storage_context,
+        if not image_files:
+            return CreateVectorStoreOutputSchema(
+                result="",
+                error="No image files found in the specified folder.",
+            )
+
+        # Add image files to the collection
+        for image in image_files:
+            image_collection.add(
+                documents=[image["content"]],
+                metadatas=[image["metadata"]],
+                ids=[image["metadata"]["file_path"]],
+            )
+
+        return CreateVectorStoreOutputSchema(
+            result=f"Image Vector Store created successfully with the name: {image_collection_name}"
         )
-        index.storage_context.persist(request_data.folder_path)
-        return {
-            "execution_details": {"executed": True},
-            "result": "Vector Store was created with the name:"
-            + request_data.collection_name,
-        }

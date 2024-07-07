@@ -72,7 +72,6 @@ class SearchCodebase(Action[CodeSearchRequest, CodeSearchResponse]):
     """
 
     _display_name = "Advanced Codebase Search"
-    _description = "Performs a regex-based search across a codebase, offering powerful and flexible code pattern matching capabilities."
     _request_schema: Type[CodeSearchRequest] = CodeSearchRequest
     _response_schema: Type[CodeSearchResponse] = CodeSearchResponse
     _tags = ["search", "code-analysis"]

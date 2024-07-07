@@ -47,7 +47,6 @@ class GetRepoMap(Action[GetRepoMapRequest, GetRepoMapResponse]):
     """
 
     _display_name = "Generate Repository Map"
-    _description = "Creates a detailed map of a repository, highlighting specified files of interest and providing a structured overview of key code elements."
     _request_schema: Type[GetRepoMapRequest] = GetRepoMapRequest
     _response_schema: Type[GetRepoMapResponse] = GetRepoMapResponse
     _tags = ["repository", "code-structure", "analysis"]

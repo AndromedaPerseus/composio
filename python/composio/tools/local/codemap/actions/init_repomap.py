@@ -2,8 +2,7 @@ from pathlib import Path
 from typing import Optional, Type
 
 from composio.tools.local.base import Action
-from composio.tools.local.base.utils.grep_utils import \
-    get_files_excluding_gitignore
+from composio.tools.local.base.utils.grep_utils import get_files_excluding_gitignore
 from composio.tools.local.base.utils.repomap import RepoMap
 from pydantic import BaseModel, Field
 
@@ -25,7 +24,6 @@ class InitRepoMap(Action[InitRepoMapRequest, InitRepoMapResponse]):
     """
 
     _display_name = "Initialize Repository Map"
-    _description = "Initializes the repository map for the given root directory. This action prepares the RepoMap object for future use."
     _request_schema: Type[InitRepoMapRequest] = InitRepoMapRequest
     _response_schema: Type[InitRepoMapResponse] = InitRepoMapResponse
     _tags = ["repo"]

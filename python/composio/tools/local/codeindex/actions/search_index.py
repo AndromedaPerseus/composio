@@ -67,7 +67,6 @@ class SearchCodebase(Action[SearchCodebaseRequest, SearchCodebaseResponse]):
     """
 
     _display_name = "Search Indexed Codebase"
-    _description = "Searches the indexed codebase for relevant code snippets based on a given query, with options for filtering and result limiting."
     _request_schema: Type[SearchCodebaseRequest] = SearchCodebaseRequest
     _response_schema: Type[SearchCodebaseResponse] = SearchCodebaseResponse
     _tags = ["codebase", "search", "index"]

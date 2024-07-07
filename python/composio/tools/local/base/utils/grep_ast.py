@@ -2,7 +2,7 @@
 # https://github.com/paul-gauthier/aider/blob/main/aider/repomap.py
 
 import re
-from .parser import filename_to_lang
+from composio.tools.local.base.utils.parser import filename_to_lang
 
 
 class TreeContext:

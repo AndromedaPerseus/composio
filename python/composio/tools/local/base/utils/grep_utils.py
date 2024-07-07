@@ -3,8 +3,8 @@
 
 import os
 from pathlib import Path
-from .grep_ast import TreeContext
-from .parser import filename_to_lang
+from composio.tools.local.base.utils.grep_ast import TreeContext
+from composio.tools.local.base.utils.parser import filename_to_lang
 
 
 def get_files_excluding_gitignore(root_path, no_gitignore=False):

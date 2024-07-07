@@ -20,7 +20,6 @@ class DeleteIndex(Action[DeleteIndexInput, DeleteIndexOutput]):
     """
 
     _display_name = "Delete index"
-    _description = "Deletes the index for a specified code base."
     _request_schema: Type[DeleteIndexInput] = DeleteIndexInput
     _response_schema: Type[DeleteIndexOutput] = DeleteIndexOutput
     _tags = ["index"]
