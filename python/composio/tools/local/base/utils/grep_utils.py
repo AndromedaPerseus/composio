@@ -2,7 +2,6 @@
 # https://github.com/paul-gauthier/grep-ast/blob/main/grep_ast/grep_ast.py
 
 import os
-import pathspec
 from pathlib import Path
 from .grep_ast import TreeContext
 from .parser import filename_to_lang
@@ -25,6 +24,7 @@ def get_files_excluding_gitignore(root_path, no_gitignore=False):
             if potential_gitignore.exists():
                 gitignore = potential_gitignore
                 break
+    import pathspec  # TODO: simplify import
 
     if gitignore:
         with open(gitignore, "r") as f:
