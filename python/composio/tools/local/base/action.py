@@ -8,9 +8,8 @@ from typing import Generic, List, Type, TypeVar, Union
 
 import inflection
 import jsonref
-from pydantic import BaseModel
-
 from composio.utils.logging import WithLogger
+from pydantic import BaseModel
 
 
 def generate_hashed_appId(input_string):

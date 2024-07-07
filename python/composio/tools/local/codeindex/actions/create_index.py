@@ -8,10 +8,8 @@ from typing import List, Optional, Tuple, Type
 import chromadb
 from chromadb.utils import embedding_functions
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from pydantic import BaseModel, Field
-
 from composio.tools.local.base import Action
-
+from pydantic import BaseModel, Field
 
 # Constants
 MAX_WINDOW_SIZE = 200

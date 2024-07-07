@@ -3,8 +3,6 @@
 # Import necessary modules
 import re
 
-from tree_sitter_languages import get_parser
-
 from .parser import filename_to_lang
 
 
@@ -42,6 +40,8 @@ class TreeContext:
 
         # Determine the language of the file
         lang = filename_to_lang(filename)
+
+        from tree_sitter_languages import get_parser  # TODO: simplify import
 
         # Get parser based on file extension
         parser = get_parser(lang)

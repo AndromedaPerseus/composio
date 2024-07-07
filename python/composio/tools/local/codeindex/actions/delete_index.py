@@ -4,9 +4,8 @@ from typing import Type
 
 import chromadb
 from chromadb.errors import ChromaError
-from pydantic import BaseModel, Field
-
 from composio.tools.local.base import Action
+from pydantic import BaseModel, Field
 
 
 class DeleteIndexInput(BaseModel):

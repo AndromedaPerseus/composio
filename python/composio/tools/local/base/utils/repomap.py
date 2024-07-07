@@ -7,27 +7,16 @@ from collections import Counter, defaultdict, namedtuple
 from importlib import resources
 from pathlib import Path
 
-from diskcache import Cache
-from pygments.lexers import guess_lexer_for_filename
-from pygments.token import Token
-from pygments.util import ClassNotFound
-from tqdm import tqdm
-
-from composio.tools.local.base.utils.file_utils import (
-    get_mtime,
-    get_rel_fname,
-    print_if_verbose,
-    split_path,
-    token_count,
-)
 from composio.tools.local.base.utils.grep_ast import TreeContext
 from composio.tools.local.base.utils.parser import filename_to_lang
-
+from composio.tools.local.base.utils.utils import (get_mtime, get_rel_fname,
+                                                   print_if_verbose,
+                                                   split_path, token_count)
+from diskcache import Cache
 
 # Suppress FutureWarning from tree_sitter
 warnings.simplefilter("ignore", category=FutureWarning)
 from tree_sitter_languages import get_language, get_parser  # noqa: E402
-
 
 # Define a named tuple for storing tag information
 Tag = namedtuple("Tag", ["rel_fname", "fname", "line", "name", "kind"])
@@ -312,7 +301,12 @@ class RepoMap:
             )
             return
         tokens = []
+        from pygments.util import ClassNotFound
+
         try:
+            from pygments.lexers import guess_lexer_for_filename
+            from pygments.token import Token
+
             lexer = guess_lexer_for_filename(fname, code)
             tokens = list(lexer.get_tokens(code))
             tokens = [token[1] for token in tokens if token[0] in Token.Name]
@@ -368,8 +362,6 @@ class RepoMap:
             + len(other_fnames) * other_weight
         )
 
-        if self.cache_missing:
-            fnames = tqdm(fnames)
         self.cache_missing = False
 
         # Process each file

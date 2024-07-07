@@ -1,7 +1,5 @@
 import os
 
-from transformers import GPT2Tokenizer
-
 
 def get_rel_fname(root, fname):
     """Get relative file name from the root directory."""
@@ -41,6 +39,8 @@ def print_if_verbose(text, verbose=True):
 
 # Replace the existing token_count function with this:
 def token_count(text):
+    from transformers import GPT2Tokenizer  # TODO: simplify import
+
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     max_length = 1024
     # If the tokens exceed max_length, count them in chunks

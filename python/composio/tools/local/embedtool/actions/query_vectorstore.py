@@ -1,15 +1,12 @@
 import chromadb
+from composio.tools.local.base import Action
 from llama_index.core import StorageContext, VectorStoreIndex
-from llama_index.core.response.notebook_utils import (
-    display_image_uris,
-    display_source_node,
-)
+from llama_index.core.response.notebook_utils import (display_image_uris,
+                                                      display_source_node)
 from llama_index.core.schema import ImageNode
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import BaseModel, Field
-
-from composio.tools.local.base import Action
 
 
 class QueryInputSchema(BaseModel):

@@ -18,7 +18,6 @@ from composio.tools.local.sqltool import SqlTool
 from composio.tools.local.webtool import WebTool
 from composio.tools.local.zep import ZepTool
 
-
 TOOLS_PATH = Path(__file__).parent
 
 TOOLS = [
