@@ -1,2 +1,2 @@
-from .create_vectorstore import CreateVectorstore
-from .query_vectorstore import QueryVectorstore
+from .create_vectorstore import CreateImageVectorStore
+from .query_vectorstore import QueryImageVectorStore

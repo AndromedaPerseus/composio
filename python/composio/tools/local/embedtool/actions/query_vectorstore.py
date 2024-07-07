@@ -54,6 +54,10 @@ class QueryImageVectorStore(Action):
             query_embeddings=query_embeddings,
             n_results=request_data.max_results,
         )
+        if search_results is None:
+            return QueryImageVectorStoreOutputSchema(
+                result="No images found", image_paths=[]
+            )
 
         retrieved_image_paths = [
             result["metadata"]["file_path"] for result in search_results["metadatas"][0]
