@@ -7,6 +7,7 @@ from composio.client.enums.base import ACTIONS_CACHE, ActionData, _AnnotatedEnum
 @enum
 class Action(_AnnotatedEnum[ActionData], path=ACTIONS_CACHE):
     """Class to represent `Action` entity."""
+    ADVANCED_CODESEARCH_SEARCH_CODEBASE: 'Action'
     APIFY_CREATE_APIFY_ACTOR: 'Action'
     APIFY_GET_ACTOR_ID: 'Action'
     APIFY_GET_LAST_RUN_DATA: 'Action'
@@ -610,7 +611,6 @@ class Action(_AnnotatedEnum[ActionData], path=ACTIONS_CACHE):
     CODEMAP_GENERATE_RANKED_TAGS: 'Action'
     CODEMAP_GET_REPO_MAP: 'Action'
     CODEMAP_INIT_REPO_MAP: 'Action'
-    CODESEARCH_SEARCH_CODEBASE: 'Action'
     COMPOSIO_CHECK_ACTIVE_CONNECTION: 'Action'
     COMPOSIO_INITIATE_CONNECTION: 'Action'
     COMPOSIO_RETRIEVE_ACTIONS: 'Action'

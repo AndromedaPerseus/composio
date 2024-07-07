@@ -56,17 +56,9 @@ class SearchCodebase(Action[CodeSearchRequest, CodeSearchResponse]):
     The search is performed efficiently and can handle large codebases by leveraging optimized search algorithms and respecting version control ignore files.
 
     Example usage:
-    ```python
     search_request =
-        query=r"def\s+process_data\(",  # Searches for function definitions starting with 'process_data'
+        query="def process_data(",  # Searches for function definitions starting with 'process_data'
         root_directory="/path/to/project",
-
-    search_results = SearchCodebase().execute(search_request)
-
-    for result in search_results.matches:
-        print(f"Found in {result.file_path}:")
-        print(result.matched_content)
-    ```
 
     This action provides a powerful tool for code analysis, refactoring assistance, and codebase exploration tasks.
     """
