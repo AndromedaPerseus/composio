@@ -2,8 +2,10 @@ import typing as t
 
 from composio.tools.local.base import Action, Tool
 
-from .actions import (CreateVectorstore,  # Import your action class
-                      QueryVectorstore)
+from .actions import (
+    CreateImageVectorStore,  # Import your action class
+    QueryImageVectorStore,
+)
 
 
 class EmbedTool(Tool):
@@ -12,7 +14,7 @@ class EmbedTool(Tool):
     """
 
     def actions(self) -> t.List[t.Type[Action]]:
-        return [CreateVectorstore, QueryVectorstore]
+        return [CreateImageVectorStore, QueryImageVectorStore]
 
     def triggers(self) -> list:
         return []
