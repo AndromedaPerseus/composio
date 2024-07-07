@@ -2,8 +2,9 @@ import json
 import os
 
 import requests
-from composio.tools.local.base import Action
 from pydantic import BaseModel, Field
+
+from composio.tools.local.base import Action
 
 
 class message(BaseModel):
@@ -60,9 +61,7 @@ class CodeQuery(Action[CodeQueryRequest, CodeQueryResponse]):
     _tool_name = "greptile"
 
     def execute(
-        self,
-        request_data: CodeQueryRequest,
-        authorisation_data: dict = {},  # type: ignore[override]
+        self, request_data: CodeQueryRequest, authorisation_data: dict = {}  # type: ignore[override]
     ) -> dict:
         token = os.getenv("GREPTILE_TOKEN")
         if token is None:

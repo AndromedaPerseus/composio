@@ -1,5 +1,6 @@
 """Tool for creating a new shell session."""
 
+
 from pydantic import BaseModel, Field
 
 from composio.tools.local.base import Action

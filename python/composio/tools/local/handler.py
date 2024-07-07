@@ -1,7 +1,6 @@
 import typing as t
 
-from composio.client.enums import (Action, ActionType, App, AppType, Tag,
-                                   TagType)
+from composio.client.enums import Action, ActionType, App, AppType, Tag, TagType
 from composio.tools.local.base import Action as LocalActionType
 from composio.tools.local.base import Tool as LocalToolType
 from composio.utils.logging import WithLogger
@@ -16,8 +15,9 @@ class LocalClient(WithLogger):
     @property
     def tools(self) -> t.Dict[str, LocalToolType]:
         """Local tools."""
-        from composio.tools.local import \
-            TOOLS  # pylint: disable=import-outside-toplevel
+        from composio.tools.local import (  # pylint: disable=import-outside-toplevel
+            TOOLS,
+        )
 
         for tool in t.cast(t.List[t.Type[LocalToolType]], TOOLS):
             _tool = tool()
