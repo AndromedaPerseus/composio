@@ -1,15 +1,10 @@
-import os
 from pathlib import Path
-from typing import Type, List, Optional
+from typing import List, Optional, Type
+
 from pydantic import BaseModel, Field
 
 from composio.tools.local.base import Action
-from composio.tools.local.codeindex.actions.create_index import (
-    CreateIndex,
-    DEFAULT_EMBEDDING_MODEL_LOCAL,
-    DEFAULT_EMBEDDING_MODEL_REMOTE,
-    SUPPORTED_FILE_EXTENSIONS,
-)
+from composio.tools.local.codeindex.actions.create_index import CreateIndex
 
 
 class SearchCodebaseRequest(BaseModel):
@@ -68,7 +63,7 @@ class SearchCodebase(Action[SearchCodebaseRequest, SearchCodebaseResponse]):
         collection_name = Path(request.directory).name
 
         embedding_type = status.get("embedding_type", "local")
-        embedding_function = create_index._create_embedding_function(
+        embedding_function = create_index.create_embedding_function(
             embedding_type,
         )
 

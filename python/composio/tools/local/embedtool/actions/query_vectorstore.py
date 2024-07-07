@@ -1,15 +1,5 @@
-import os
-
 import chromadb
-from chromadb.utils.data_loaders import ImageLoader
-from chromadb.utils.embedding_functions import OpenCLIPEmbeddingFunction
-from llama_index.core import (
-    Settings,
-    SimpleDirectoryReader,
-    StorageContext,
-    VectorStoreIndex,
-)
-from llama_index.core.indices import MultiModalVectorStoreIndex
+from llama_index.core import StorageContext, VectorStoreIndex
 from llama_index.core.response.notebook_utils import (
     display_image_uris,
     display_source_node,
@@ -53,10 +43,6 @@ class QueryVectorstore(Action):
         self, request_data: QueryInputSchema, authorisation_data: dict = {}
     ) -> dict:
         # Implement logic to process input and return output
-        # Example:
-        # response_data = {"result": "Processed text: " + request_data.text}
-        embedding_function = OpenCLIPEmbeddingFunction()
-        image_loader = ImageLoader()
         chroma_client = chromadb.PersistentClient(path=request_data.collection_path)
         chroma_collection = chroma_client.get_collection(request_data.storename)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)

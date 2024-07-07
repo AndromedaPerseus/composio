@@ -1,10 +1,11 @@
-import os
 from pathlib import Path
-from typing import Type, List, Optional
+from typing import List, Optional, Type
+
 from pydantic import BaseModel, Field
-from composio.tools.local.base.utils.repomap import RepoMap
+
 from composio.tools.local.base import Action
 from composio.tools.local.base.utils.grep_utils import get_files_excluding_gitignore
+from composio.tools.local.base.utils.repomap import RepoMap
 
 
 class GenerateRankedTagsRequest(BaseModel):
@@ -42,7 +43,6 @@ class GenerateRankedTags(Action[GenerateRankedTagsRequest, GenerateRankedTagsRes
     def execute(
         self, request: GenerateRankedTagsRequest, authorisation_data: dict = {}
     ) -> dict:
-
         repo_root = Path(request.root_path).resolve()
 
         if not repo_root.exists():
@@ -63,23 +63,8 @@ class GenerateRankedTags(Action[GenerateRankedTagsRequest, GenerateRankedTagsRes
                 mentioned_idents=set(),
             )
 
-            # Convert the ranked tags to a list of RankedTag objects
-            ranked_tag_objects = []
-            if ranked_tags is None:
-                return {"error": "No ranked tags found"}
-
-            for tag in ranked_tags:
-                if isinstance(tag, tuple) and len(tag) >= 4:
-                    ranked_tag_objects.append(
-                        RankedTag(
-                            file_path=tag[0],
-                            line_number=int(tag[3]),
-                            tag_content=tag[2],
-                        )
-                    )
-
             return {
-                "ranked_tags": ranked_tag_objects,
+                "ranked_tags": ranked_tags,
                 "message": "Ranked tags for specified files generated successfully",
             }
 

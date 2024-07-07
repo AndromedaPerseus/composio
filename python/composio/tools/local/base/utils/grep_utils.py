@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
-import argparse
 import os
-import sys
 from pathlib import Path
 
 import pathspec
 
 from .grep_ast import TreeContext
-from .parser import PARSERS, filename_to_lang
+from .parser import filename_to_lang
 
 
 def get_files_excluding_gitignore(root_path, no_gitignore=False):
@@ -114,99 +112,3 @@ def process_file(filename, pattern, encoding, ignore_case, color, verbose, line_
             pass  # Skip files that can't be parsed
 
     return file_results
-
-
-def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("pattern", nargs="?", help="the pattern to search for")
-    parser.add_argument(
-        "filenames", nargs="*", help="the files to display", default="."
-    )
-    parser.add_argument("--encoding", default="utf8", help="file encoding")
-    parser.add_argument(
-        "--languages", action="store_true", help="show supported languages"
-    )
-    parser.add_argument(
-        "-i", "--ignore-case", action="store_true", help="ignore case distinctions"
-    )
-    parser.add_argument(
-        "--color", action="store_true", help="force color printing", default=None
-    )
-    parser.add_argument(
-        "--no-color", action="store_false", help="disable color printing", dest="color"
-    )
-    parser.add_argument(
-        "--no-gitignore", action="store_true", help="ignore .gitignore file"
-    )
-    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
-    parser.add_argument(
-        "-n", "--line-number", action="store_true", help="display line numbers"
-    )
-    args = parser.parse_args()
-
-    # If stdout is not a terminal, set color to False
-    if args.color is None:
-        args.color = os.isatty(1)
-
-    # If --languages is provided, print the parsers table and exit
-    if args.languages:
-        for ext, lang in sorted(PARSERS.items()):
-            print(f"{ext}: {lang}")
-        return
-    elif not args.pattern:
-        print("Please provide a pattern to search for")
-        return 1
-
-    files_to_search = []
-    for fname in args.filenames:
-        if os.path.isdir(fname):
-            files_to_search.extend(
-                get_files_excluding_gitignore(fname, args.no_gitignore)
-            )
-        else:
-            files_to_search.append(fname)
-
-    for fname in files_to_search:
-        process_filename(fname, args)
-
-
-def process_filename(filename, args):
-    try:
-        with open(filename, "r", encoding=args.encoding) as file:
-            code = file.read()
-    except UnicodeDecodeError:
-        return
-
-    try:
-        lang = filename_to_lang(filename)
-        if lang is None:
-            return
-        tc = TreeContext(
-            filename,
-            code,
-            color=args.color,
-            verbose=args.verbose,
-            line_number=args.line_number,
-        )
-    except ValueError:
-        return
-
-    loi = tc.grep(args.pattern, args.ignore_case)
-    if not loi:
-        return
-
-    tc.add_lines_of_interest(loi)
-    tc.add_context()
-
-    print()
-    print(f"{filename}:")
-
-    print(tc.format(), end="")
-
-    print()
-
-
-if __name__ == "__main__":
-    res = main()
-    sys.exit(res)

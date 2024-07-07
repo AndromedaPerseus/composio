@@ -1,5 +1,6 @@
 import os
-from pathlib import Path
+
+from transformers import GPT2Tokenizer
 
 
 def get_rel_fname(root, fname):
@@ -20,3 +21,34 @@ def get_mtime(fname):
     except FileNotFoundError:
         print(f"File not found error: {fname}")
         return None
+
+
+def find_src_files(directory):
+    if not os.path.isdir(directory):
+        return [directory]
+
+    src_files = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            src_files.append(os.path.join(root, file))
+    return src_files
+
+
+def print_if_verbose(text, verbose=True):
+    if verbose:
+        print(text)
+
+
+# Replace the existing token_count function with this:
+def token_count(text):
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    max_length = 1024
+    # If the tokens exceed max_length, count them in chunks
+    if len(text) > max_length:
+        total_tokens = 0
+        for i in range(0, len(text), max_length):
+            chunk = tokenizer.encode(text[i : i + max_length])
+            total_tokens += len(chunk)
+        return total_tokens
+    else:
+        return len(tokenizer.encode(text))

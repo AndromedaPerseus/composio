@@ -1,6 +1,6 @@
-import os
 from pathlib import Path
-from typing import Type, List, Optional
+from typing import List, Optional, Type
+
 from pydantic import BaseModel, Field
 
 from composio.tools.local.base import Action

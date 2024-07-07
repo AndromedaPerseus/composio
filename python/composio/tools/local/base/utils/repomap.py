@@ -1,28 +1,36 @@
 # Import necessary libraries
-import colorsys
 import math
 import os
-import random
-import sys
+import shutil
 import warnings
 from collections import Counter, defaultdict, namedtuple
 from importlib import resources
 from pathlib import Path
-import shutil
+
 from diskcache import Cache
-from composio.tools.local.base.utils.parser import filename_to_lang, PARSERS
-from composio.tools.local.base.utils.grep_ast import TreeContext
 from pygments.lexers import guess_lexer_for_filename
 from pygments.token import Token
 from pygments.util import ClassNotFound
 from tqdm import tqdm
 
+from composio.tools.local.base.utils.file_utils import (
+    get_mtime,
+    get_rel_fname,
+    print_if_verbose,
+    split_path,
+    token_count,
+)
+from composio.tools.local.base.utils.grep_ast import TreeContext
+from composio.tools.local.base.utils.parser import filename_to_lang
+
+
 # Suppress FutureWarning from tree_sitter
 warnings.simplefilter("ignore", category=FutureWarning)
 from tree_sitter_languages import get_language, get_parser  # noqa: E402
 
+
 # Define a named tuple for storing tag information
-Tag = namedtuple("Tag", "rel_fname fname line name kind".split())
+Tag = namedtuple("Tag", ["rel_fname", "fname", "line", "name", "kind"])
 
 """
 RepoMap: Generates a structured view of a code repository.
@@ -52,28 +60,6 @@ emphasizing relevant files and code structures based on the current conversation
 and mentioned points of interest.
 """
 
-from transformers import GPT2Tokenizer
-
-
-# Replace the existing token_count function with this:
-def token_count(text):
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    max_length = 1024
-    # If the tokens exceed max_length, count them in chunks
-    if len(text) > max_length:
-        total_tokens = 0
-        for i in range(0, len(text), max_length):
-            chunk = tokenizer.encode(text[i : i + max_length])
-            total_tokens += len(chunk)
-        return total_tokens
-    else:
-        return len(tokenizer.encode(text))
-
-
-def print_if_verbose(text, verbose=True):
-    if verbose:
-        print(text)
-
 
 class RepoMap:
     # Class variables for caching
@@ -81,7 +67,7 @@ class RepoMap:
     TAGS_CACHE_DIR = f".composio.tags.cache.v{CACHE_VERSION}"
 
     cache_missing = False
-    warned_files = set()
+    warned_files: set[str] = set()
 
     def __init__(
         self,
@@ -178,7 +164,7 @@ class RepoMap:
 
         # Count tokens in the files listing
         num_tokens = self.token_count(files_listing)
-        print_if_verbose(f"Repo-map: {num_tokens/1024:.1f} k-tokens", self.verbose)
+        print_if_verbose(f"Repo-map: {num_tokens / 1024:.1f} k-tokens", self.verbose)
 
         # Prepare repo content string
         other = "other " if chat_files else ""
@@ -191,32 +177,12 @@ class RepoMap:
 
         return repo_content
 
-    def get_rel_fname(self, fname):
-        """Get relative file name from the root directory."""
-        return os.path.relpath(fname, self.root)
-
-    def split_path(self, path):
-        """Split path into components relative to the root directory."""
-        path = os.path.relpath(path, self.root)
-        return [path + ":"]
-
     def load_tags_cache(self):
         """Load tags cache from disk."""
         path = Path(self.root) / self.TAGS_CACHE_DIR
         if not path.exists():
             self.cache_missing = True
         self.TAGS_CACHE = Cache(path)
-
-    def save_tags_cache(self):
-        """Save tags cache to disk (placeholder method)."""
-        pass
-
-    def get_mtime(self, fname):
-        """Get modification time of a file."""
-        try:
-            return os.path.getmtime(fname)
-        except FileNotFoundError:
-            print_if_verbose(f"File not found error: {fname}", self.verbose)
 
     def get_tags(self, fname: str, rel_fname: str) -> list[Tag]:
         """
@@ -226,7 +192,7 @@ class RepoMap:
         :param rel_fname: Relative file name
         :return: List of tags
         """
-        file_mtime = self.get_mtime(fname)
+        file_mtime = get_mtime(fname)
         if file_mtime is None:
             print_if_verbose(
                 f"Warning: Unable to get modification time for {fname}, skipping",
@@ -252,7 +218,6 @@ class RepoMap:
 
         # Update cache
         self.TAGS_CACHE.set(cache_key, {"mtime": file_mtime, "data": data})
-        self.save_tags_cache()
 
         return data
 
@@ -346,18 +311,17 @@ class RepoMap:
                 "Exiting get_tags_raw due to no definitions found", self.verbose
             )
             return
-
+        tokens = []
         try:
             lexer = guess_lexer_for_filename(fname, code)
+            tokens = list(lexer.get_tokens(code))
+            tokens = [token[1] for token in tokens if token[0] in Token.Name]
         except ClassNotFound:
             print_if_verbose(
                 "Exiting get_tags_raw due to ClassNotFound in lexer guessing",
                 self.verbose,
             )
-            return
-
-        tokens = list(lexer.get_tokens(code))
-        tokens = [token[1] for token in tokens if token[0] in Token.Name]
+            tokens = code.split()
 
         for token in tokens:
             yield Tag(
@@ -394,9 +358,9 @@ class RepoMap:
         fnames = sorted(fnames)
 
         # Improved personalization logic
-        chat_weight = 10.0
-        mentioned_weight = 15.0
-        other_weight = 1.0
+        chat_weight = 1.0  # this is always sent as empty
+        mentioned_weight = 20.0  # this are target_files
+        other_weight = 1.0  # this are all the other files
 
         total_weight = (
             len(chat_fnames) * chat_weight
@@ -426,7 +390,7 @@ class RepoMap:
                 self.warned_files.add(fname)
                 continue
 
-            rel_fname = self.get_rel_fname(fname)
+            rel_fname = get_rel_fname(self.root, fname)
 
             if fname in chat_fnames:
                 personalization[rel_fname] = chat_weight / total_weight
@@ -508,7 +472,7 @@ class RepoMap:
             ranked_tags += list(definitions.get((fname, ident), []))
 
         rel_other_fnames_without_tags = set(
-            self.get_rel_fname(fname) for fname in other_fnames
+            get_rel_fname(self.root, fname) for fname in other_fnames
         )
 
         fnames_already_included = set(rt[0] for rt in ranked_tags)
@@ -546,6 +510,7 @@ class RepoMap:
         :param mentioned_idents: Mentioned identifiers
         :return: Formatted string of the ranked tags map
         """
+        print("Starting get_ranked_tags_map")
         if not other_fnames:
             other_fnames = list()
         if not max_map_tokens:
@@ -555,9 +520,14 @@ class RepoMap:
         if not mentioned_idents:
             mentioned_idents = set()
 
+        # print(
+        #     f"Parameters: chat_fnames={chat_fnames}, other_fnames={other_fnames}, max_map_tokens={max_map_tokens}, mentioned_fnames={mentioned_fnames}, mentioned_idents={mentioned_idents}"
+        # )
+
         ranked_tags = self.get_ranked_tags(
             chat_fnames, other_fnames, mentioned_fnames, mentioned_idents
         )
+        # print(f"Got {len(ranked_tags)} ranked tags")
 
         num_tags = len(ranked_tags)
         lower_bound = 0
@@ -565,20 +535,24 @@ class RepoMap:
         best_tree = None
         best_tree_tokens = 0
 
-        chat_rel_fnames = [self.get_rel_fname(fname) for fname in chat_fnames]
+        chat_rel_fnames = [get_rel_fname(self.root, fname) for fname in chat_fnames]
+        # print(f"Chat relative filenames: {chat_rel_fnames}")
 
         # Binary search for optimal number of tags
         middle = min(max_map_tokens // 25, num_tags)
 
         self.tree_cache = dict()
 
+        # print("Starting binary search for optimal number of tags")
         while lower_bound <= upper_bound:
             tree = self.to_tree(ranked_tags[:middle], chat_rel_fnames)
             num_tokens = self.token_count(tree)
+            # print(f"Current middle: {middle}, num_tokens: {num_tokens}")
 
             if num_tokens < max_map_tokens and num_tokens > best_tree_tokens:
                 best_tree = tree
                 best_tree_tokens = num_tokens
+                # print(f"New best tree found with {best_tree_tokens} tokens")
 
             if num_tokens < max_map_tokens:
                 lower_bound = middle + 1
@@ -586,10 +560,12 @@ class RepoMap:
                 upper_bound = middle - 1
 
             middle = (lower_bound + upper_bound) // 2
-
+        # if best_tree is None:
+        #     # print("No best tree found")
+        #     return ""
+        # print(f"Binary search completed. Best tree has {best_tree_tokens} tokens")
+        # print(f"Best tree content (first 100 characters): {best_tree[:100]}")
         return best_tree
-
-    tree_cache = dict()
 
     def render_tree(self, abs_fname, rel_fname, lois):
         key = (rel_fname, tuple(sorted(lois)))
@@ -602,7 +578,6 @@ class RepoMap:
             code = file.read()
         if not code.endswith("\n"):
             code += "\n"
-
         context = TreeContext(
             rel_fname,
             code,
@@ -646,7 +621,12 @@ class RepoMap:
                     output += "\n"
                     if cur_fname is not None:
                         output += cur_fname + ":\n"
-                    output += self.render_tree(cur_abs_fname, cur_fname, lois)
+                    lang = filename_to_lang(cur_abs_fname)
+                    if lang:
+                        output += self.render_tree(cur_abs_fname, cur_fname, lois)
+                    if lang is None:
+                        print("Skipping : ", cur_abs_fname)
+                        continue
                     lois = None
                 elif cur_fname:
                     output += "\n" + cur_fname + "\n"
@@ -681,14 +661,3 @@ class RepoMap:
             # Reset the cache object
             self.TAGS_CACHE = Cache(cache_path)
             self.cache_missing = True
-
-
-def find_src_files(directory):
-    if not os.path.isdir(directory):
-        return [directory]
-
-    src_files = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            src_files.append(os.path.join(root, file))
-    return src_files

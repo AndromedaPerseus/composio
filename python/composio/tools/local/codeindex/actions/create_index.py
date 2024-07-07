@@ -1,14 +1,17 @@
-import os
 import json
-import chromadb
 import multiprocessing
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Type, List, Tuple, Optional
-from pydantic import BaseModel, Field
-from composio.tools.local.base import Action
+from typing import List, Optional, Tuple, Type
+
+import chromadb
 from chromadb.utils import embedding_functions
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from pydantic import BaseModel, Field
+
+from composio.tools.local.base import Action
+
 
 # Constants
 MAX_WINDOW_SIZE = 200
@@ -64,14 +67,13 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
     def execute(
         self, request_data: CreateCodeIndexInput, authorisation_data: dict = {}
     ) -> CreateCodeIndexOutput:
-
         # Check if index already exists or is in progress
         status = self.check_status(request_data.dir_to_index_path)
         if status["status"] == "completed" and not request_data.force_index:
             return CreateCodeIndexOutput(
                 result=f"Index already exists for {request_data.dir_to_index_path}. Use force_index=True to recreate."
             )
-        elif status["status"] == "in_progress" and not request_data.force_index:
+        if status["status"] == "in_progress" and not request_data.force_index:
             return CreateCodeIndexOutput(
                 result=f"Indexing is already in progress for {request_data.dir_to_index_path}. Use force_index=True to restart."
             )
@@ -90,7 +92,6 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
         )
 
     def _delete_existing_index(self, repo_path: str):
-
         index_storage_path = Path.home() / ".composio" / "index_storage"
         collection_name = self._get_collection_name(repo_path)
         status_file = Path(repo_path) / ".indexing_status.json"
@@ -111,7 +112,7 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
 
         chroma_client = chromadb.PersistentClient(path=str(index_storage_path))
 
-        embedding_function = self._create_embedding_function(
+        embedding_function = self.create_embedding_function(
             request_data.embedding_type,
         )
 
@@ -145,7 +146,7 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
     def _create_index_storage_path(self, index_storage_path: Path) -> None:
         index_storage_path.mkdir(parents=True, exist_ok=True)
 
-    def _create_embedding_function(
+    def create_embedding_function(
         self,
         embedding_type: str,
     ):
@@ -161,10 +162,10 @@ class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
             if api_base:
                 kwargs["api_base"] = api_base
             return OpenAIEmbeddingFunction(**kwargs)
-        else:
-            return embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name=DEFAULT_EMBEDDING_MODEL_LOCAL
-            )
+
+        return embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name=DEFAULT_EMBEDDING_MODEL_LOCAL
+        )
 
     def _create_chroma_collection(
         self, chroma_client, collection_name: str, embedding_function

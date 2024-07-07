@@ -1,11 +1,12 @@
 import os
-import json
 from pathlib import Path
 from typing import Type
-from pydantic import BaseModel, Field
-from composio.tools.local.base import Action
+
 import chromadb
 from chromadb.errors import ChromaError
+from pydantic import BaseModel, Field
+
+from composio.tools.local.base import Action
 
 
 class DeleteIndexInput(BaseModel):
