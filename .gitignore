@@ -33,3 +33,4 @@ temp
 refactor_debug.ipynb
 **/coder_agent_logs_*
 **/.composio.coder.*
+.indexing_status.json

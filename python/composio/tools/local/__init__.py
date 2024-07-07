@@ -22,6 +22,8 @@ TOOLS_PATH = Path(__file__).parent
 
 TOOLS = [
     CodeIndexTool,
+    CodeGrepTool,
+    CodeMapTool,
     Mathematical,
     FileTool,
     Greptile,
@@ -34,6 +36,4 @@ TOOLS = [
     SqlTool,
     WebTool,
     ZepTool,
-    CodeGrepTool,
-    CodeMapTool,
 ]
