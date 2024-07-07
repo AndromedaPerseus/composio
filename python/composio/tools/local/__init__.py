@@ -15,6 +15,8 @@ from composio.tools.local.sqltool import SqlTool
 from composio.tools.local.webtool import WebTool
 from composio.tools.local.zep import ZepTool
 from composio.tools.local.codeindex import CodeIndexTool
+from composio.tools.local.codegrep import CodeGrepTool
+from composio.tools.local.codemap import CodeMapTool
 
 TOOLS_PATH = Path(__file__).parent
 
@@ -32,4 +34,6 @@ TOOLS = [
     SqlTool,
     WebTool,
     ZepTool,
+    CodeGrepTool,
+    CodeMapTool,
 ]

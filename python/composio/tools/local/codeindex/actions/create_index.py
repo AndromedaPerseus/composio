@@ -4,7 +4,7 @@ import chromadb
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Type, List, Tuple
+from typing import Type, List, Tuple, Optional
 from pydantic import BaseModel, Field
 from composio.tools.local.base import Action
 from chromadb.utils import embedding_functions
@@ -28,9 +28,10 @@ SUPPORTED_FILE_EXTENSIONS = {
 }
 DEFAULT_EMBEDDING_MODEL_REMOTE = "text-embedding-3-large"
 DEFAULT_EMBEDDING_MODEL_LOCAL = "all-MiniLM-L6-v2"
+IGNORED_DIRECTORIES = {".git", ".tox", "venv", ".venv", "env", ".env", "__pycache__"}
 
 
-class CreateIndexInputSchema(BaseModel):
+class CreateCodeIndexInput(BaseModel):
     dir_to_index_path: str = Field(..., description="Directory to index")
     embedding_type: str = Field(
         default="local",
@@ -42,11 +43,11 @@ class CreateIndexInputSchema(BaseModel):
     )
 
 
-class CreateIndexOutputSchema(BaseModel):
+class CreateCodeIndexOutput(BaseModel):
     result: str = Field(..., description="Result of the action")
 
 
-class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
+class CreateIndex(Action[CreateCodeIndexInput, CreateCodeIndexOutput]):
     """
     Indexes a code base in a folder and stores the index in a vector store.
     """
@@ -55,23 +56,23 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
     _description = (
         "Indexes a code base in a folder and stores the index in a vector store."
     )
-    _request_schema: Type[CreateIndexInputSchema] = CreateIndexInputSchema
-    _response_schema: Type[CreateIndexOutputSchema] = CreateIndexOutputSchema
+    _request_schema: Type[CreateCodeIndexInput] = CreateCodeIndexInput
+    _response_schema: Type[CreateCodeIndexOutput] = CreateCodeIndexOutput
     _tags = ["index"]
     _tool_name = "codeindex"
 
     def execute(
-        self, request_data: CreateIndexInputSchema, authorisation_data: dict = {}
-    ) -> CreateIndexOutputSchema:
+        self, request_data: CreateCodeIndexInput, authorisation_data: dict = {}
+    ) -> CreateCodeIndexOutput:
 
         # Check if index already exists or is in progress
         status = self.check_status(request_data.dir_to_index_path)
         if status["status"] == "completed" and not request_data.force_index:
-            return CreateIndexOutputSchema(
+            return CreateCodeIndexOutput(
                 result=f"Index already exists for {request_data.dir_to_index_path}. Use force_index=True to recreate."
             )
         elif status["status"] == "in_progress" and not request_data.force_index:
-            return CreateIndexOutputSchema(
+            return CreateCodeIndexOutput(
                 result=f"Indexing is already in progress for {request_data.dir_to_index_path}. Use force_index=True to restart."
             )
 
@@ -84,7 +85,7 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
             target=self._index_creation, args=(request_data,)
         )
         process.start()
-        return CreateIndexOutputSchema(
+        return CreateCodeIndexOutput(
             result=f"Indexing started for {request_data.dir_to_index_path}"
         )
 
@@ -103,7 +104,7 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
         if status_file.exists():
             os.remove(status_file)
 
-    def _index_creation(self, request_data: CreateIndexInputSchema):
+    def _index_creation(self, request_data: CreateCodeIndexInput):
         collection_name = self._get_collection_name(request_data.dir_to_index_path)
         index_storage_path = Path.home() / ".composio" / "index_storage"
         self._create_index_storage_path(index_storage_path)
@@ -124,10 +125,12 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
             request_data.embedding_type,
         )
 
-    def _get_openai_credentials(self) -> Tuple[str, str, str]:
-        openai_key = os.getenv("OPENAI_API_KEY", "")
-        api_base = os.getenv("OPENAI_API_BASE", "")
-        helicone_auth = os.getenv("HELICONE_AUTH", "")
+    def _get_openai_credentials(
+        self,
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        openai_key = os.getenv("OPENAI_API_KEY", None)
+        api_base = os.getenv("HELICONE_API_BASE", None)
+        helicone_auth = os.getenv("HELICONE_API_KEY", None)
 
         if openai_key:
             print("OPENAI_API_KEY is ready")
@@ -148,6 +151,8 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
     ):
         if embedding_type == "remote":
             openai_key, api_base, helicone_auth = self._get_openai_credentials()
+            if not openai_key:
+                raise ValueError("OPENAI_API_KEY environment variable not found")
             kwargs = {
                 "api_key": openai_key,
                 "model_name": DEFAULT_EMBEDDING_MODEL_REMOTE,
@@ -203,7 +208,8 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
             def process_directory(directory: str) -> None:
                 with ThreadPoolExecutor() as executor:
                     futures = []
-                    for root, _, files in os.walk(directory):
+                    for root, dirs, files in os.walk(directory):
+                        dirs[:] = [d for d in dirs if d not in IGNORED_DIRECTORIES]
                         for file in files:
                             if file.endswith(tuple(SUPPORTED_FILE_EXTENSIONS.keys())):
                                 file_path = os.path.join(root, file)
@@ -253,10 +259,11 @@ class CreateIndex(Action[CreateIndexInputSchema, CreateIndexOutputSchema]):
     ):
         status_data = {
             "status": status,
-            "error": error,
             "embedding_type": embedding_type,
             "embedding_model": embedding_model,
         }
+        if error:
+            status_data["error"] = error
         with open(status_file, "w") as f:
             json.dump(status_data, f)
 

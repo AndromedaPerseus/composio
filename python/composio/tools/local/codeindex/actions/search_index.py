@@ -12,10 +12,10 @@ from composio.tools.local.codeindex.actions.create_index import (
 )
 
 
-class SearchIndexInputSchema(BaseModel):
-    dir_to_search: str = Field(..., description="Directory to search")
+class SearchCodebaseRequest(BaseModel):
+    directory: str = Field(..., description="Directory to search")
     query: str = Field(..., description="Search query")
-    num_results: int = Field(default=5, description="Number of results to return")
+    result_count: int = Field(default=5, description="Number of results to return")
     file_type: str = Field(
         None,
         description="File type to filter results (case-insensitive). Supported types: PY, JS, TS, HTML, CSS, JAVA, C++, C, CHeader, MD, TXT",
@@ -31,41 +31,41 @@ class SearchResult(BaseModel):
     file_type: str
 
 
-class SearchIndexOutputSchema(BaseModel):
+class SearchCodebaseResponse(BaseModel):
     results: List[SearchResult] = Field(..., description="Search results")
-    error: Optional[str] = Field(None, description="Error message if any")
+    error: Optional[str] = Field(default=None, description="Error message if any")
 
 
-class SearchIndex(Action[SearchIndexInputSchema, SearchIndexOutputSchema]):
+class SearchCodebase(Action[SearchCodebaseRequest, SearchCodebaseResponse]):
     """
     Searches the indexed code base for relevant code snippets.
     """
 
-    _display_name = "Search Index"
-    _description = "Searches the indexed code base for relevant code snippets."
-    _request_schema: Type[SearchIndexInputSchema] = SearchIndexInputSchema
-    _response_schema: Type[SearchIndexOutputSchema] = SearchIndexOutputSchema
+    _display_name = "Search Codebase"
+    _description = "Searches the indexed codebase for relevant code snippets."
+    _request_schema: Type[SearchCodebaseRequest] = SearchCodebaseRequest
+    _response_schema: Type[SearchCodebaseResponse] = SearchCodebaseResponse
     _tags = ["index", "search"]
     _tool_name = "codeindex"
 
     def execute(
-        self, request_data: SearchIndexInputSchema, authorisation_data: dict = {}
-    ) -> SearchIndexOutputSchema:
+        self, request: SearchCodebaseRequest, authorisation_data: dict = {}
+    ) -> SearchCodebaseResponse:
         import chromadb
         from chromadb.errors import ChromaError
 
         # Check if index exists
         create_index = CreateIndex()
-        status = create_index.check_status(request_data.dir_to_search)
+        status = create_index.check_status(request.directory)
         if status["status"] != "completed":
-            return SearchIndexOutputSchema(
+            return SearchCodebaseResponse(
                 results=[], error="Index not completed or not found"
             )
 
         # Set up Chroma client and collection
         index_storage_path = Path.home() / ".composio" / "index_storage"
         chroma_client = chromadb.PersistentClient(path=str(index_storage_path))
-        collection_name = Path(request_data.dir_to_search).name
+        collection_name = Path(request.directory).name
 
         embedding_type = status.get("embedding_type", "local")
         embedding_function = create_index._create_embedding_function(
@@ -79,15 +79,13 @@ class SearchIndex(Action[SearchIndexInputSchema, SearchIndexOutputSchema]):
 
             # Prepare filter based on file_type if provided
             filter_condition = None
-            if request_data.file_type:
-                filter_condition = {
-                    "file_type": {"$eq": request_data.file_type.upper()}
-                }
+            if request.file_type:
+                filter_condition = {"file_type": {"$eq": request.file_type.upper()}}
 
             # Perform the search
             results = chroma_collection.query(
-                query_texts=[request_data.query],
-                n_results=request_data.num_results,
+                query_texts=[request.query],
+                n_results=request.result_count,
                 where=filter_condition,
             )
 
@@ -110,12 +108,12 @@ class SearchIndex(Action[SearchIndexInputSchema, SearchIndexOutputSchema]):
                         )
                     )
 
-            return SearchIndexOutputSchema(results=search_results, error=None)
+            return SearchCodebaseResponse(results=search_results)
         except ChromaError as e:
-            return SearchIndexOutputSchema(
+            return SearchCodebaseResponse(
                 results=[], error=f"Collection '{collection_name}' not found: {str(e)}"
             )
         except Exception as e:
             error_message = f"An error occurred during search: {str(e)}"
             print(error_message)
-            return SearchIndexOutputSchema(results=[], error=error_message)
+            return SearchCodebaseResponse(results=[], error=error_message)

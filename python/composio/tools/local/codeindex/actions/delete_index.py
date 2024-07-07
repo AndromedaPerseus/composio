@@ -8,34 +8,32 @@ import chromadb
 from chromadb.errors import ChromaError
 
 
-class DeleteIndexInputSchema(BaseModel):
-    indexed_dir_to_delete: str = Field(
-        ..., description="Directory of the index to delete"
-    )
+class DeleteIndexInput(BaseModel):
+    index_directory: str = Field(..., description="Directory of the index to delete")
 
 
-class DeleteIndexOutputSchema(BaseModel):
-    result: str = Field(..., description="Result of the action")
+class DeleteIndexOutput(BaseModel):
+    message: str = Field(..., description="Result of the delete index action")
 
 
-class DeleteIndex(Action[DeleteIndexInputSchema, DeleteIndexOutputSchema]):
+class DeleteIndex(Action[DeleteIndexInput, DeleteIndexOutput]):
     """
     Deletes the index for a specified code base.
     """
 
     _display_name = "Delete index"
     _description = "Deletes the index for a specified code base."
-    _request_schema: Type[DeleteIndexInputSchema] = DeleteIndexInputSchema
-    _response_schema: Type[DeleteIndexOutputSchema] = DeleteIndexOutputSchema
+    _request_schema: Type[DeleteIndexInput] = DeleteIndexInput
+    _response_schema: Type[DeleteIndexOutput] = DeleteIndexOutput
     _tags = ["index"]
     _tool_name = "codeindex"
 
     def execute(
-        self, request_data: DeleteIndexInputSchema, authorisation_data: dict = {}
-    ) -> DeleteIndexOutputSchema:
+        self, input_data: DeleteIndexInput, authorisation_data: dict = {}
+    ) -> DeleteIndexOutput:
         index_storage_path = Path.home() / ".composio" / "index_storage"
-        collection_name = Path(request_data.indexed_dir_to_delete).name
-        status_file = Path(request_data.indexed_dir_to_delete) / ".indexing_status.json"
+        collection_name = Path(input_data.index_directory).name
+        status_file = Path(input_data.index_directory) / ".indexing_status.json"
 
         try:
             # Delete the collection from Chroma
@@ -46,12 +44,14 @@ class DeleteIndex(Action[DeleteIndexInputSchema, DeleteIndexOutputSchema]):
             if status_file.exists():
                 os.remove(status_file)
 
-            return DeleteIndexOutputSchema(
-                result=f"Index for {request_data.indexed_dir_to_delete} has been successfully deleted."
+            return DeleteIndexOutput(
+                message=f"Index for {input_data.index_directory} has been successfully deleted."
             )
         except ChromaError as e:
-            return DeleteIndexOutputSchema(result=f"Failed to delete index: {str(e)}")
+            return DeleteIndexOutput(message=f"Failed to delete index: {str(e)}")
         except Exception as e:
-            return DeleteIndexOutputSchema(
-                result=f"An error occurred while deleting the index: {str(e)}"
+            error_message = str(e)
+            return DeleteIndexOutput(
+                message="An error occurred while deleting the index"
+                + (f": {error_message}" if error_message else "")
             )

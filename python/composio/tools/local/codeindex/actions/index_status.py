@@ -1,42 +1,43 @@
 import os
 from pathlib import Path
-from typing import Type
+from typing import Type, Optional
 from pydantic import BaseModel, Field
 
 from composio.tools.local.base import Action
 from composio.tools.local.codeindex.actions.create_index import CreateIndex
 
 
-class IndexStatusInputSchema(BaseModel):
-    dir_to_index_path: str = Field(
-        ..., description="Directory to check indexing status"
+class IndexStatusInput(BaseModel):
+    directory_path: str = Field(..., description="Directory to check indexing status")
+
+
+class IndexStatusOutput(BaseModel):
+    status: str = Field(..., description="Status of the indexing process")
+    error: Optional[str] = Field(
+        default=None, description="Error message if indexing failed"
     )
 
 
-class IndexStatusOutputSchema(BaseModel):
-    status: str = Field(..., description="Status of the indexing process")
-    error: str = Field("", description="Error message if indexing failed")
-
-
-class IndexStatus(Action[IndexStatusInputSchema, IndexStatusOutputSchema]):
+class IndexStatus(Action[IndexStatusInput, IndexStatusOutput]):
     """
     Checks the status of the indexing process for a given directory.
     """
 
     _display_name = "Check Index Status"
     _description = "Checks the status of the indexing process for a given directory."
-    _request_schema: Type[IndexStatusInputSchema] = IndexStatusInputSchema
-    _response_schema: Type[IndexStatusOutputSchema] = IndexStatusOutputSchema
+    _request_schema: Type[IndexStatusInput] = IndexStatusInput
+    _response_schema: Type[IndexStatusOutput] = IndexStatusOutput
     _tags = ["index"]
     _tool_name = "codeindex"
 
     def execute(
-        self, request_data: IndexStatusInputSchema, authorisation_data: dict = {}
-    ) -> IndexStatusOutputSchema:
+        self, input_data: IndexStatusInput, authorisation_data: dict = {}
+    ) -> IndexStatusOutput:
         create_index = CreateIndex()
-        status_data = create_index.check_status(request_data.dir_to_index_path)
+        status_data = create_index.check_status(input_data.directory_path)
 
-        return IndexStatusOutputSchema(
-            status=status_data.get("status", "unknown"),
-            error=status_data.get("error", ""),
-        )
+        output = IndexStatusOutput(status=status_data.get("status", "unknown"))
+        if error := status_data.get("error"):
+            output.error = error
+
+        return output
