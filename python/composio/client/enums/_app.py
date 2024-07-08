@@ -21,6 +21,7 @@ class App(_AnnotatedEnum[AppData], path=APPS_CACHE):
     DISCORD: 'App'
     DROPBOX: 'App'
     ELEVENLABS: 'App'
+    EMBEDTOOL: 'App'
     EXA: 'App'
     FIGMA: 'App'
     FILEEDITTOOL: 'App'

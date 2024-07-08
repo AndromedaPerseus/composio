@@ -5,6 +5,7 @@ from pathlib import Path
 from composio.tools.local.codegrep import CodeGrepTool
 from composio.tools.local.codeindex import CodeIndexTool
 from composio.tools.local.codemap import CodeMapTool
+from composio.tools.local.embedtool import EmbedTool
 from composio.tools.local.filetool import FileTool
 from composio.tools.local.greptile import Greptile
 from composio.tools.local.mathematical import Mathematical
@@ -24,6 +25,7 @@ TOOLS = [
     CodeIndexTool,
     CodeGrepTool,
     CodeMapTool,
+    EmbedTool,
     Mathematical,
     FileTool,
     Greptile,
